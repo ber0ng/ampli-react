@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+//import logo from './logo.svg';
 import './App.css';
 
 import { Auth, Hub } from 'aws-amplify';
@@ -14,7 +14,37 @@ const initialFormState = {
 }
 
 function App() {
-  const [formState, updateFormState] = useState (initialFormState)
+  const [formState, updateFormState] = useState(initialFormState)
+  const [user, updateUser] = useState(null)
+  useEffect (() => {
+    checkUser()
+    setAuthListener()
+  }, [])
+  
+  async function setAuthListener() {
+    Hub.listen('auth', (data) => {
+  switch (data.payload.event) {
+    case 'signOut':
+        console.log('data from event:', data)
+        updateFormState(() => ({ ...formState, formType: "signUp"}))
+        break;
+    default:
+        break;
+      }
+    });
+  }
+  
+  async function checkUser() {
+    try {
+      const user = await Auth.currentAuthenticatedUser()
+      updateUser(user)
+      console.log('user:', user)
+      updateFormState(() => ({ ...formState, formType: "signedIn"}))
+    }
+    catch (err){
+      
+    }
+  }
   
   //Create onchange handler & receive an events
   function onChange(e) {
@@ -53,6 +83,9 @@ function App() {
             <input name="password" type="password" onChange={onChange} placeholder="password" />
             <input name="email" onChange={onChange} placeholder="email" />
             <button onClick={signUp}>Sign Up</button>
+            <button onClick= {() => updateFormState(() => ({
+              ...formState, formType: "signIn"
+            }))}>Sign In</button>
           </div>
         )
       }
@@ -75,7 +108,12 @@ function App() {
       }
       {
         formType === 'signedIn' && (
-          <h1>Hello World, welcom user.</h1>
+          <div>
+            <h1>Hello world, welcome user.</h1>
+            <button onClick= {
+              () => Auth.signOut()
+            }>Sign Out </button>
+          </div>
         )
       }
     </div>
